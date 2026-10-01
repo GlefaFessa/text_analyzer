@@ -330,106 +330,58 @@ def keywords_bar(items: list, n: int = 15) -> go.Figure:
     fig.update_xaxes(title="Частота")
     return _apply_layout(fig, f"Топ-{len(items)} ключевых слов")
 
-def wordcloud_figure(keywords: list, lang: str = "ru", theme: str = "light") -> "go.Figure":
-    """Облако слов для ключевых слов SEO.
+import os
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
-    keywords — список пар (слово, частота), упорядоченный по убыванию.
-    theme — 'light' или 'dark', подбирает палитру слов.
 
-    Фон облака прозрачный, чтобы сливаться с темой Streamlit.
+def _get_cyrillic_font() -> str | None:
+    """Ищет системный шрифт с поддержкой кириллицы.
+
+    WordCloud по умолчанию использует DroidSansMono, который не содержит
+    кириллических глифов — русские слова отображаются квадратами.
     """
-    from wordcloud import WordCloud
-    from matplotlib.colors import LinearSegmentedColormap
-    import matplotlib.pyplot as plt
-    from io import BytesIO
-    import base64
-    import os
+    candidates = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\segoeui.ttf",
+        r"C:\Windows\Fonts\calibri.ttf",
+        r"C:\Windows\Fonts\verdana.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
 
-    if not keywords:
-        return None
 
-    # Ищем шрифт с поддержкой кириллицы.
-    font_path = None
-    if lang == "ru":
-        candidates = [
-            r"C:\Windows\Fonts\arial.ttf",
-            r"C:\Windows\Fonts\times.ttf",
-            r"C:\Windows\Fonts\verdana.ttf",
-            r"C:\Windows\Fonts\calibri.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        ]
-        for path in candidates:
-            if os.path.exists(path):
-                font_path = path
-                break
+def wordcloud_figure(items: list, max_words: int = 100) -> plt.Figure:
+    """Облако слов из списка (слово, частота).
 
-    # Палитра зависит от темы:
-    # - тёмная: светлые оттенки фиолетового + белый для топ-слов;
-    # - светлая: насыщенные тёмные оттенки фиолетового.
-    if theme == "dark":
-        colors = ["#a249f5", "#ac5afd", "#b16afd", "#e1c7fd", "#ffffff"]
-    else:
-        colors = ["#a855f7", "#7c3aed", "#6d28d9", "#4c1d95", "#1e1b4b"]
-
-    cmap = LinearSegmentedColormap.from_list("themed_purple", colors)
-
-    freq_dict = dict(keywords)
+    items — список пар (слово, частота), упорядоченный по убыванию.
+    max_words — сколько слов отрисовать.
+    Возвращает matplotlib.figure.Figure для st.pyplot().
+    """
+    freq = dict(items[:max_words])
+    font_path = _get_cyrillic_font()
 
     wc = WordCloud(
-        width=800,
-        height=400,
-        mode="RGBA",               # прозрачный фон
-        background_color=None,     # без фоновой заливки
+        width=1000,
+        height=800,
+        background_color=None,
+        mode="RGBA",
         font_path=font_path,
-        colormap=cmap,
-        max_words=100,
-        prefer_horizontal=0.85,
-        relative_scaling=0.6,
-        min_font_size=10,
-    ).generate_from_frequencies(freq_dict)
+        colormap="Purples",
+        max_words=max_words,
+        prefer_horizontal=0.9,
+        relative_scaling=0.5,
+        min_font_size=14,
+        collocations=False,
+    ).generate_from_frequencies(freq)
 
-    # Рендерим через matplotlib.
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10, 8))
     ax.imshow(wc, interpolation="bilinear")
     ax.axis("off")
-    fig.patch.set_alpha(0)         # фон фигуры тоже прозрачный
-    fig.tight_layout(pad=0)
-
-    buf = BytesIO()
-    fig.savefig(
-        buf,
-        format="png",
-        dpi=100,
-        bbox_inches="tight",
-        pad_inches=0,
-        transparent=True,           # ← ключевой параметр
-    )
-    plt.close(fig)
-    buf.seek(0)
-
-    img_b64 = base64.b64encode(buf.read()).decode("utf-8")
-
-    # Оборачиваем в Plotly Figure.
-    plotly_fig = go.Figure()
-    plotly_fig.add_layout_image(
-        dict(
-            source=f"data:image/png;base64,{img_b64}",
-            xref="paper", yref="paper",
-            x=0, y=1,
-            sizex=1, sizey=1,
-            sizing="stretch",
-            opacity=1,
-            layer="below",
-        )
-    )
-    plotly_fig.update_xaxes(visible=False, range=[0, 1])
-    plotly_fig.update_yaxes(visible=False, range=[0, 1])
-    plotly_fig.update_layout(
-        margin=dict(l=0, r=0, t=40, b=0),
-        height=420,
-        title="Облако ключевых слов",
-        paper_bgcolor="rgba(0,0,0,0)",   # прозрачный фон Plotly
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
-    return plotly_fig
+    fig.patch.set_alpha(0)
+    plt.tight_layout(pad=0)
+    return fig

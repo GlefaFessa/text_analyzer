@@ -8,6 +8,7 @@ import warnings
 from datetime import datetime
 
 import streamlit as st
+import matplotlib.pyplot as plt
 
 from analyzer import charts
 from analyzer.file_parsers import parse_file
@@ -221,9 +222,10 @@ def render_seo(metrics: dict, text: str, lang: str, precision: int) -> None:
     st.divider()
     kw_all = keywords(text, lang, top=50)
     if kw_all:
-        wc_fig = charts.wordcloud_figure(kw_all, lang=lang)
+        wc_fig = charts.wordcloud_figure(kw_all, max_words=50)
         if wc_fig is not None:
-            st.plotly_chart(wc_fig, use_container_width=True)
+            st.pyplot(wc_fig, use_container_width=False)
+            plt.close(wc_fig)
 
     # Таблица ключевых слов.
     st.divider()
