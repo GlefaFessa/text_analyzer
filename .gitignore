@@ -1,0 +1,43 @@
+# Виртуальные окружения
+venv/
+.venv/
+env/
+ENV/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# VSCode — оставляем settings.json, если есть
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+
+# PyCharm
+.idea/
+
+# Выгрузки и временные файлы
+*.log
+import_log.txt
+output.txt
+metrics_*.json
+requirements_backup*.txt
+requirements_after_*.txt
+path_backup.txt
+
+# Тестовые данные
+sample*.txt
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
